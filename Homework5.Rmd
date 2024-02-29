@@ -1,0 +1,159 @@
+---
+title: "Homework 5"
+author: "John \"Caleb\" Trelford"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+UT EID: jct3538
+
+GitHub repo: https://github.com/jctrelford/Homework5
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message = FALSE, tidy=TRUE)
+```
+
+```{r, echo=FALSE, results = 'hide'}
+library(tidyverse)
+library(mosaic)
+```
+
+\newpage
+
+# Problem 1
+
+```{r, echo=FALSE, results = 'hide'}
+sim_trades = do(100000)*nflip(n=2021, prob = 0.024)
+
+pvalue_trades = sum(sim_trades >= 70)/100000
+```
+
+```{r, echo=FALSE}
+ggplot(sim_trades) + 
+  geom_histogram(aes(x=nflip), binwidth = 0.5) +
+  labs(title = "100,000 simulated runs of 2021 trades",
+       x = "Number of flagged trades",
+       y = "Frequency")
+```
+
+The null hypothesis is that security trades from the Iron Bank in the observed data are flagged at the same 2.4% baseline rate as that of other traders and variation can be explained by random chance. The test statistic is the number of trades flagged, which was 70, in our observed data. The p-value is `r pvalue_trades`. Because the p-value is so low, where only `r pvalue_trades * 100`% of simulations were as extreme or more extreme than the observed test statistic, I think that something interesting could be happening that necessitates further investigation.
+
+\newpage
+
+# Problem 2
+
+```{r, echo=FALSE, results = 'hide'}
+sim_gourmet = do(100000)*nflip(n=50, prob = 0.03)
+
+pvalue_gourmet = sum(sim_gourmet >= 8)/100000
+```
+
+```{r, echo=FALSE}
+ggplot(sim_gourmet) +
+  geom_histogram(aes(x=nflip), binwidth = 0.5) + 
+  labs(title = "100,000 simulated runs of 50 health inspections",
+       x = "Number of health code violations",
+       y = "Frequency")
+```
+
+The null hypothesis is that health code violations in the observed data for Gourmet Bites are consistent with the city's 3% baseline rate and variation can be explained by random chance. The test statistic is the number of health code violations, which was 8, in our observed data. The p-value is `r pvalue_gourmet`. Because the p-value is so low, where only about `r pvalue_gourmet * 100`% of simulations were as extreme or more extreme than the observed test statistic, I think that something interesting could be happening that necessitates further investigation.
+
+\newpage
+
+# Problem 3
+
+## Part A
+
+```{r, echo=FALSE, results = 'hide'}
+# Read the sentences
+sentences <- readLines("brown_sentences.txt")
+sentences <- paste(unlist(sentences), collapse = " ")
+
+# Preprocess the text
+preprocess_text <- function(text) {
+  # Remove non-letters and convert to uppercase
+  clean_text = gsub("[^A-Za-z]", "", text)
+  clean_text = toupper(clean_text)
+  
+  return(clean_text)
+}
+
+sentences <- preprocess_text(sentences)
+
+# Calculate letter count
+
+letters <- unlist(str_split(sentences, ""))
+
+letter_counts <- table(letters)
+
+
+
+```
+
+## Part B
+
+```{r, echo=FALSE, results = 'hide'}
+
+sentences <- c(
+  "She opened the book and started to read the first chapter, eagerly anticipating what might come next.",
+  "Despite the heavy rain, they decided to go for a long walk in the park, crossing the main avenue by the fountain in the center.",
+  "The museum’s new exhibit features ancient artifacts from various civilizations around the world.",
+  "He carefully examined the document, looking for any clues that might help solve the mystery.",
+  "The students gathered in the auditorium to listen to the guest speaker’s inspiring lecture.",
+  "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.",
+  "The chef demonstrated how to prepare a delicious meal using only locally sourced ingredients, focusing mainly on some excellent dinner recipes from Spain.",
+  "They watched the sunset from the hilltop, marveling at the beautiful array of colors in the sky.",
+  "The committee reviewed the proposal and provided many points of useful feedback to improve the project’s effectiveness.",
+  "Despite the challenges faced during the project, the team worked tirelessly to ensure its successful completion, resulting in a product that exceeded everyone’s expectations."
+)
+
+# Flatten the list and collapse into one big string
+all_text <- readLines("brown_sentences.txt")
+
+# Remove everything but letters and convert to uppercase
+clean_text <- gsub("[^A-Za-z]", "", all_text)
+clean_text <- toupper(clean_text)
+letters <- unlist(str_split(clean_text, ""))
+
+# Calculate the frequency of each letter
+letter_frequencies <- table(letters)
+
+letter_frequencies <- as.data.frame(letter_frequencies)
+names(letter_frequencies) = c("Letter", "Count")
+
+# Calculate probabilities (normalize counts)
+letter_frequencies = letter_frequencies %>%
+  mutate(Probability = Count / sum(Count)) %>%
+  select(-Count)
+
+calculate_chi_squared = function(sentence, freq_table) {
+  
+  # Ensure letter frequencies are normalized and sum to 1
+  freq_table$Probability = freq_table$Probability / sum(freq_table$Probability)
+  
+  # Remove non-letters and convert to uppercase
+  clean_sentence = gsub("[^A-Za-z]", "", sentence)
+  clean_sentence = toupper(clean_sentence)
+  
+  # Count the occurrences of each letter in the sentence
+  observed_counts = table(factor(strsplit(clean_sentence, "")[[1]], levels = freq_table$Letter))
+  
+  # Calculate expected counts
+  total_letters = sum(observed_counts)
+  expected_counts = total_letters * freq_table$Probability
+  
+  # Chi-squared statistic
+  chi_squared_stat = sum((observed_counts - expected_counts)^2 / expected_counts)
+  
+  return(chi_squared_stat)
+}
+
+for (i in sentences){
+  print(calculate_chi_squared(i, letter_frequencies))
+} 
+
+```
+
+The sixth sentence was produced by a LLM because its chi square value is the biggest.
